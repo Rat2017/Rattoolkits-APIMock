@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rattoolkits-APIMock - 可视化 Mock 服务</title>
+  <title>Rattoolkits-API Mock - 可视化 Mock 服务</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
@@ -672,15 +672,20 @@
 
   <footer class="footer">
     <div class="server-controls">
+      <div class="port-control">
+        <label>端口:</label>
+        <input type="number" id="portInput" value="3000" min="1" max="65535" style="width: 100px; padding: 6px 8px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 14px;">
+        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="changePort()">应用</button>
+      </div>
       <button class="btn btn-success" id="serverToggle" onclick="toggleServer()">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
         <span id="serverBtnText">启动服务</span>
       </button>
-      <span id="serverInfo">端口: 3000</span>
+      <span id="serverInfo">运行于: <span id="serverUrl">http://localhost:3000</span></span>
     </div>
-    <div>Made with simplicity in mind</div>
+    <div>Made From Rat2017</div>
   </footer>
 
   <div class="toast" id="toast">
@@ -691,7 +696,8 @@
   </div>
 
   <script>
-    const API_BASE = 'http://localhost:3000/api';
+    let currentPort = 3000;
+    const API_BASE = () => `http://localhost:${currentPort}/api`;
     let endpoints = [];
     let logs = [];
     let serverRunning = false;
@@ -699,7 +705,7 @@
 
     async function fetchEndpoints() {
       try {
-        const res = await fetch(`${API_BASE}/endpoints`);
+        const res = await fetch(`${API_BASE()}/endpoints`);
         endpoints = await res.json();
         renderEndpoints();
       } catch (e) {
@@ -709,7 +715,7 @@
 
     async function fetchLogs() {
       try {
-        const res = await fetch(`${API_BASE}/logs`);
+        const res = await fetch(`${API_BASE()}/logs`);
         logs = await res.json();
         renderLogs();
       } catch (e) {
@@ -719,7 +725,7 @@
 
     async function checkServerStatus() {
       try {
-        const res = await fetch(`${API_BASE}/server/status`);
+        const res = await fetch(`${API_BASE()}/server/status`);
         const data = await res.json();
         serverRunning = data.running;
         updateServerUI();
@@ -762,7 +768,7 @@
     async function toggleServer() {
       try {
         const endpoint = serverRunning ? 'server/stop' : 'server/start';
-        await fetch(`${API_BASE}/${endpoint}`, { method: 'POST' });
+        await fetch(`${API_BASE()}/${endpoint}`, { method: 'POST' });
         serverRunning = !serverRunning;
         updateServerUI();
         showToast(serverRunning ? '服务已启动' : '服务已停止', 'success');
@@ -899,7 +905,7 @@
       if (!confirm('确定要删除这个端点吗？')) return;
 
       try {
-        await fetch(`${API_BASE}/endpoints/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE()}/endpoints/${id}`, { method: 'DELETE' });
         await fetchEndpoints();
         showToast('端点已删除', 'success');
       } catch (e) {
@@ -908,12 +914,45 @@
     }
 
     async function copyUrl(path) {
-      const fullUrl = `http://localhost:3000${path}`;
+      const fullUrl = `http://localhost:${currentPort}${path}`;
       try {
         await navigator.clipboard.writeText(fullUrl);
         showToast('URL 已复制到剪贴板', 'success');
       } catch (e) {
         showToast('复制失败', 'error');
+      }
+    }
+
+    async function changePort() {
+      const newPort = parseInt(document.getElementById('portInput').value);
+      if (isNaN(newPort) || newPort < 1 || newPort > 65535) {
+        showToast('请输入有效的端口号 (1-65535)', 'error');
+        return;
+      }
+      if (newPort === currentPort) {
+        showToast('端口号未改变', 'info');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE()}/server/port`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: newPort })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          currentPort = data.port;
+          document.getElementById('serverUrl').textContent = `http://localhost:${currentPort}`;
+          showToast(`端口已更改为 ${currentPort}`, 'success');
+          if (data.running) {
+            window.location.href = `http://localhost:${currentPort}`;
+          }
+        } else {
+          showToast(data.error || '端口修改失败', 'error');
+        }
+      } catch (e) {
+        showToast('端口修改失败: ' + e.message, 'error');
       }
     }
 
@@ -944,14 +983,14 @@
 
       try {
         if (editingId) {
-          await fetch(`${API_BASE}/endpoints/${editingId}`, {
+          await fetch(`${API_BASE()}/endpoints/${editingId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
           });
           showToast('端点已更新', 'success');
         } else {
-          await fetch(`${API_BASE}/endpoints`, {
+          await fetch(`${API_BASE()}/endpoints`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -971,7 +1010,7 @@
         eventSource.close();
       }
 
-      eventSource = new EventSource(`${API_BASE}/logs/stream`);
+      eventSource = new EventSource(`${API_BASE()}/logs/stream`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);

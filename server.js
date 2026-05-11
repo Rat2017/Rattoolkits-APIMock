@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = 3000;
+const PORT = 8899;
 const DATA_FILE = path.join(__dirname, 'endpoints.json');
 const LOG_FILE = path.join(__dirname, 'logs.json');
 
@@ -66,6 +66,7 @@ function generateId() {
 
 function matchEndpoint(reqPath, method) {
   return endpoints.find(ep => {
+    if (!ep.enabled) return false;
     const epParts = ep.path.split('/').filter(Boolean);
     const reqParts = reqPath.split('/').filter(Boolean);
 
@@ -134,7 +135,17 @@ function handleRequest(req, res) {
   }
 
   if (pathname === '/' || pathname === '/index.html') {
-    sendFile(res, path.join(__dirname, 'index.html'), 'text/html');
+    sendFile(res, path.join(__dirname, 'frontend', 'index.html'), 'text/html');
+    return;
+  }
+  
+  if (pathname === '/style.css') {
+    sendFile(res, path.join(__dirname, 'frontend', 'style.css'), 'text/css');
+    return;
+  }
+  
+  if (pathname === '/app.js') {
+    sendFile(res, path.join(__dirname, 'frontend', 'app.js'), 'application/javascript');
     return;
   }
 
@@ -153,6 +164,7 @@ function handleRequest(req, res) {
           statusCode: data.statusCode || 200,
           delay: data.delay || 0,
           response: data.response || {},
+          enabled: true,
           createdAt: new Date().toISOString()
         };
         endpoints.push(endpoint);
@@ -187,6 +199,29 @@ function handleRequest(req, res) {
     } else {
       sendJSON(res, 404, { error: 'Endpoint not found' });
     }
+  } else if (pathname.startsWith('/api/endpoints/') && req.method === 'PATCH') {
+    const id = pathname.split('/')[3];
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const index = endpoints.findIndex(ep => ep.id === id);
+        if (index !== -1) {
+          if (typeof data.enabled !== 'undefined') {
+            endpoints[index].enabled = data.enabled;
+            saveEndpoints();
+            sendJSON(res, 200, { success: true, enabled: endpoints[index].enabled });
+          } else {
+            sendJSON(res, 400, { error: 'Missing enabled field' });
+          }
+        } else {
+          sendJSON(res, 404, { error: 'Endpoint not found' });
+        }
+      } catch (e) {
+        sendJSON(res, 400, { error: 'Invalid request body' });
+      }
+    });
   } else if (pathname === '/api/logs') {
     sendJSON(res, 200, requestLogs);
   } else if (pathname === '/api/logs/stream') {
@@ -230,12 +265,16 @@ function startServer() {
   });
 }
 
-function stopServer() {
+function stopServer(callback) {
   if (server) {
-    server.close();
-    server = null;
-    serverRunning = false;
-    console.log('Mock Server stopped');
+    server.close((err) => {
+      server = null;
+      serverRunning = false;
+      console.log('Mock Server stopped');
+      if (callback) callback(err);
+    });
+  } else {
+    if (callback) callback(null);
   }
 }
 

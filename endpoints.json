@@ -1,0 +1,12 @@
+[
+  {
+    "id": "mp0ti7v2ztla85jibn",
+    "method": "GET",
+    "path": "/api/user",
+    "statusCode": 200,
+    "delay": 0,
+    "response": "{\"mess\"114514\"}",
+    "enabled": true,
+    "createdAt": "2026-05-11T06:25:27.374Z"
+  }
+]

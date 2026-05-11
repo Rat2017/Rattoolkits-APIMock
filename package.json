@@ -1,0 +1,19 @@
+{
+  "name": "rattoolkits-apimock",
+  "version": "1.0.0",
+  "description": "一个极简的 API Mock 可视化服务",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "api",
+    "mock",
+    "server",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT"
+}
