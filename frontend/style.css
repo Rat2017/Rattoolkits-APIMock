@@ -471,6 +471,11 @@ body {
   color: var(--text-primary);
 }
 
+.copyright-author {
+  display: none;
+  content: 'Copyright © 2025 Rat2017. 禁止商用';
+}
+
 .toast {
   position: fixed;
   bottom: 24px;
