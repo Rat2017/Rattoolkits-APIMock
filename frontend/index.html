@@ -58,6 +58,10 @@
               <label>延迟 (ms)</label>
               <input type="number" v-model.number="formData.delay" class="delay-input" min="0">
             </div>
+            <div class="form-group" style="flex:1">
+              <label>标签（可选）</label>
+              <input type="text" v-model="formData.label" class="label-input" placeholder="用于标注端点用处">
+            </div>
           </div>
           <div class="form-group">
             <label>响应 JSON</label>
@@ -129,6 +133,7 @@
                 <input type="checkbox" :checked="ep.enabled" @change="toggleEndpoint(ep.id, !ep.enabled)" />
                 <span class="slider"></span>
               </label>
+              <span v-if="ep.label" class="endpoint-label" :title="ep.label">{{ truncate(ep.label, 20) }}</span>
             </div>
           </div>
         </div>

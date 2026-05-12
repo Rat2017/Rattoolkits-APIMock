@@ -10,12 +10,14 @@ const app = createApp({
     const editingId = ref('');
     const eventSource = ref(null);
 
+    //生成formdata，存储端点数据
     const formData = reactive({
       method: 'GET',
       path: '',
       statusCode: 200,
       delay: 0,
-      response: ''
+      response: '',
+      label: ''
     });
 
     const toast = reactive({
@@ -34,7 +36,7 @@ const app = createApp({
         toast.show = false;
       }, 3000);
     };
-
+    //获取端点列表
     const fetchEndpoints = async () => {
       try {
         const res = await fetch(`${API_BASE}/endpoints`);
@@ -66,13 +68,27 @@ const app = createApp({
     const toggleServer = async () => {
       try {
         const endpoint = serverRunning.value ? 'server/stop' : 'server/start';
-        await fetch(`${API_BASE}/${endpoint}`, { method: 'POST' });
-        serverRunning.value = !serverRunning.value;
-        showToast(serverRunning.value ? '服务已启动' : '服务已停止', 'success');
-        await checkServerStatus();
+        const res = await fetch(`${API_BASE}/${endpoint}`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          serverRunning.value = data.running;
+          if (data.running) {
+            showToast('服务已启动', 'success');
+          } else {
+            showToast('服务已停止', 'success');
+          }
+        } else {
+          showToast(data.error || '操作失败', 'error');
+        }
       } catch (e) {
         showToast('操作失败: ' + e.message, 'error');
       }
+    };
+
+    const truncate = (str, maxLength) => {
+      if (str.length <= maxLength) return str;
+      return str.substring(0, maxLength) + '...';
     };
 
     const submitEndpoint = async () => {
@@ -81,9 +97,10 @@ const app = createApp({
         path: formData.path,
         statusCode: formData.statusCode || 200,
         delay: formData.delay || 0,
-        response: formData.response || '{}'
+        response: formData.response || '{}',
+        label: formData.label || ''
       };
-
+      //解析response字符串为JSON对象
       try {
         if (editingId.value) {
           await fetch(`${API_BASE}/endpoints/${editingId.value}`, {
@@ -114,6 +131,7 @@ const app = createApp({
       formData.statusCode = ep.statusCode;
       formData.delay = ep.delay || 0;
       formData.response = typeof ep.response === 'object' ? JSON.stringify(ep.response, null, 2) : ep.response;
+      formData.label = ep.label || '';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -124,6 +142,7 @@ const app = createApp({
       formData.statusCode = 200;
       formData.delay = 0;
       formData.response = '';
+      formData.label = '';
     };
 
     const deleteEndpoint = async (id) => {
@@ -236,7 +255,8 @@ const app = createApp({
       toggleEndpoint,
       copyUrl,
       formatJson,
-      formatTime
+      formatTime,
+      truncate
     };
   }
 });

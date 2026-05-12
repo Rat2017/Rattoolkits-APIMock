@@ -582,6 +582,24 @@ body {
   background-color: #059669;
 }
 
+.endpoint-label {
+  padding: 6px 12px;
+  background: #6B7280;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
 .endpoint-card.disabled {
   opacity: 0.6;
 }
